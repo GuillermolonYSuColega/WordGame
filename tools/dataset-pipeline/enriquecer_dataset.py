@@ -28,11 +28,19 @@ FUENTES Y DERECHOS
 
 Uso:
     pip install wordfreq
+
+    # Salida de depuración (legible, todas las palabras):
     python enriquecer_dataset.py entrada.txt salida.json
+
+    # Salida de producción (minificada, solo pool, sin nulls, comprimida):
+    python enriquecer_dataset.py entrada.txt salida.json \\
+        --minificar --solo-pool --sin-nulls --gzip
 """
 
+import argparse
+import gzip
 import json
-import sys
+import os
 import unicodedata
 from wordfreq import zipf_frequency
 
@@ -152,19 +160,61 @@ def construir_registro(idx: int, palabra: str) -> dict:
     }
 
 
-def main():
-    if len(sys.argv) != 3:
-        print("Uso: python enriquecer_dataset.py <entrada.txt> <salida.json>")
-        sys.exit(1)
-    entrada, salida = sys.argv[1], sys.argv[2]
+def _quitar_vacios(registro: dict) -> dict:
+    """Elimina campos None, [] o '' para reducir el peso del JSON.
+    Conserva False y 0.0 (son datos válidos). Unity/Newtonsoft tolera campos
+    ausentes: quedan con su valor por defecto en C#."""
+    return {k: v for k, v in registro.items() if v not in (None, [], "")}
 
-    with open(entrada, encoding="utf-8") as f:
+
+def _mb(ruta: str) -> str:
+    return f"{os.path.getsize(ruta) / 1024 / 1024:.2f} MB"
+
+
+def main():
+    ap = argparse.ArgumentParser(
+        description="Enriquece la lista de palabras y genera el catálogo JSON."
+    )
+    ap.add_argument("entrada", help="Lista de palabras (una por línea).")
+    ap.add_argument("salida", help="Ruta del JSON de salida.")
+    ap.add_argument("--minificar", action="store_true",
+                    help="JSON compacto sin indentado (producción).")
+    ap.add_argument("--solo-pool", action="store_true",
+                    help="Incluir solo las palabras con incluida_en_pool=True.")
+    ap.add_argument("--sin-nulls", action="store_true",
+                    help="Omitir campos vacíos (None/[]/'').")
+    ap.add_argument("--gzip", action="store_true",
+                    help="Escribir también una versión .gz comprimida.")
+    args = ap.parse_args()
+
+    with open(args.entrada, encoding="utf-8") as f:
         palabras = [l.strip() for l in f if l.strip()]
 
     registros = [construir_registro(i, w) for i, w in enumerate(palabras)]
+    total_bruto = len(registros)
 
-    with open(salida, "w", encoding="utf-8") as f:
-        json.dump(registros, f, ensure_ascii=False, indent=1)
+    # ---- Filtrado y limpieza (no alteran el informe de reparto) ----
+    salida_registros = registros
+    if args.solo_pool:
+        salida_registros = [r for r in salida_registros if r["incluida_en_pool"]]
+    if args.sin_nulls:
+        salida_registros = [_quitar_vacios(r) for r in salida_registros]
+
+    # ---- Serialización ----
+    dump_kw = dict(ensure_ascii=False)
+    dump_kw["separators"] = (",", ":") if args.minificar else None
+    if not args.minificar:
+        dump_kw["indent"] = 1
+    dump_kw = {k: v for k, v in dump_kw.items() if v is not None}
+
+    with open(args.salida, "w", encoding="utf-8") as f:
+        json.dump(salida_registros, f, **dump_kw)
+
+    if args.gzip:
+        ruta_gz = args.salida + ".gz"
+        with open(args.salida, "rb") as f_in, \
+             gzip.open(ruta_gz, "wb", compresslevel=9) as f_out:
+            f_out.writelines(f_in)
 
     # ---- Informe ----
     from collections import Counter
@@ -172,8 +222,9 @@ def main():
     cat = Counter(r["categoria"] for r in registros)
     en_pool = sum(1 for r in registros if r["incluida_en_pool"])
 
-    print(f"Procesadas: {len(registros):,} palabras")
-    print(f"En pool jugable: {en_pool:,}  |  Reservadas: {len(registros)-en_pool:,}")
+    print(f"Procesadas: {total_bruto:,} palabras")
+    print(f"En pool jugable: {en_pool:,}  |  Reservadas: {total_bruto-en_pool:,}")
+    print(f"Escritas al archivo: {len(salida_registros):,}")
     print("\nReparto por RAREZA (orden de colección):")
     for r in ["COMUN", "POCO_COMUN", "RARA", "EPICA", "LEGENDARIA", None]:
         etq = r if r else "(sin frecuencia · reservadas)"
@@ -181,6 +232,10 @@ def main():
     print("\nReparto por CATEGORÍA (heurística, a validar):")
     for c, n in cat.most_common():
         print(f"  {c:32} {n:7,}")
+
+    print(f"\nArchivo: {args.salida}  ->  {_mb(args.salida)}")
+    if args.gzip:
+        print(f"Comprimido: {args.salida}.gz  ->  {_mb(args.salida + '.gz')}")
 
 
 if __name__ == "__main__":

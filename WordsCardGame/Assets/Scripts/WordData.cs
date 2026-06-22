@@ -72,7 +72,7 @@ public class WordData
     [JsonProperty("fullDefinition")] 
     public string fullDefinition;
 
-    // --- Accesos cómodos para el reverso (Ignorados en la serialización JSON) ---
+    // --- Convenience accessors for the card back (ignored in JSON serialization) ---
 
     [JsonIgnore] 
     public bool IsTransitive => regimen != null && regimen.Contains("transitivo");
