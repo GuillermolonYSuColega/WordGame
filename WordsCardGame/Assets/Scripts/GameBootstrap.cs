@@ -3,10 +3,10 @@ using Palabrario.Data;
 
 public class GameBootstrap : MonoBehaviour
 {
-    [SerializeField] private Card cardUI;
-
+    [SerializeField] private PackController packController;
+ 
     private LexicalCatalog _catalog;
-
+ 
     private void Start()
     {
         StartCoroutine(CatalogLoader.Load(
@@ -14,18 +14,18 @@ public class GameBootstrap : MonoBehaviour
             {
                 _catalog = new LexicalCatalog(data);
                 Debug.Log($"Catalog loaded: {_catalog.TotalCount} words " +
-                          $"({_catalog.TotalInPool} in playable pool).");
-                OpenPack();   
+                          $"({_catalog.TotalInPool} in the playable pool).");
+ 
+                if (packController != null)
+                    packController.OpenPack(_catalog);
+                else
+                    Debug.LogError("GameBootstrap: 'packController' is not assigned.");
             },
             onError: e => Debug.LogError($"Could not load catalog: {e}")));
     }
-
-    public void OpenPack()
+    
+    public void OpenAnotherPack()
     {
-        if (_catalog == null) return;
-        WordData card = _catalog.DrawCard();
-        if (card == null) return;
-        Debug.Log($"Drawn: {card.word}  [{card.rarity}]  ({card.category})");
-        if (cardUI != null) cardUI.Paint(card);
+        if (_catalog != null) packController.OpenPack(_catalog);
     }
 }

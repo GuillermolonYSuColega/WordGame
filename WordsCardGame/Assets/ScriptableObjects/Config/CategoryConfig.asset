@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 732b7443e6cec894ab74049d00923e87, type: 3}
+  m_Name: CategoryConfig
+  m_EditorClassIdentifier: Assembly-CSharp::CategoryConfig
+  entries:
+  - category: 0
+    icon: {fileID: 7482667652216324306, guid: d0e0a90116d9d414abbeb3ed86566edb, type: 3}
+  - category: 1
+    icon: {fileID: -2413806693520163455, guid: 47413f1562373b34197d85c2857ebba5, type: 3}
+  - category: 2
+    icon: {fileID: 7482667652216324306, guid: 416e33423a25a4340b2bff48ae81ac12, type: 3}
+  - category: 3
+    icon: {fileID: -9095717837082945937, guid: 8b2a6b38697a0a34cb0cf1b1012ec1b5, type: 3}
+  - category: 4
+    icon: {fileID: -5177388603050735206, guid: 49e1a78596080d64a8f499366883ed74, type: 3}
+  - category: 5
+    icon: {fileID: 0}
+  defaultIcon: {fileID: 7482667652216324306, guid: d0e0a90116d9d414abbeb3ed86566edb, type: 3}

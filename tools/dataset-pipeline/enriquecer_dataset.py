@@ -124,6 +124,18 @@ def asignar_rareza(zipf: float):
 
 
 def construir_registro(idx: int, palabra: str) -> dict:
+    # Mapeo de los valores internos (español) a los NOMBRES de enum en inglés
+    # que espera WordData (CATEGORY/RARITY) en Unity. Los valores de 'regimen'
+    # se quedan en español porque IsTransitive/IsPronominal los comparan así.
+    CAT_EN = {
+        "SUSTANTIVO": "Noun", "VERBO": "Verb", "ADJETIVO": "Adjective",
+        "ADVERBIO": "Adverb", "LOCUCION": "Locution",
+    }
+    RAR_EN = {
+        "COMUN": "Common", "POCO_COMUN": "Uncommon", "RARA": "Rare",
+        "EPICA": "Epic", "LEGENDARIA": "Legendary",
+    }
+
     p = palabra.strip()
     pl = p.lower()
     zipf = zipf_frequency(pl, "es")
@@ -137,26 +149,26 @@ def construir_registro(idx: int, palabra: str) -> dict:
     if es_verbo and pl.endswith("se"):
         regimen.append("pronominal")
 
+    # Claves EN INGLÉS para casar 1:1 con WordData ([JsonProperty(...)]).
     return {
         "id": idx,
-        "palabra": p,                       # forma de pantalla (anverso)
-        "lema": pl,                          # clave normalizada
-        "categoria": categoria,              # -> icono de la carta
-        "categoria_fuente": "heuristica",    # honesto: validar con Wikcionario
-        "rareza": rareza,                    # -> color de la carta (o None)
-        "frecuencia_zipf": round(zipf, 2),   # señal cruda (depuración/balance)
-        "incluida_en_pool": en_pool,         # ¿entra en la colección de lanzamiento?
-        "es_locucion": (" " in p or "-" in p),
-        # Régimen verbal (vacío si no es verbo). Se muestra en el reverso:
-        # "transitivo" / "intransitivo" / "pronominal", combinables.
+        "word": p,                                   # forma de pantalla (anverso)
+        "normalizedWord": pl,                         # clave normalizada (minúsculas)
+        "category": CAT_EN[categoria],                # -> icono; nombre de enum CATEGORY
+        "categorySource": "heuristica",               # honesto: validar con Wikcionario
+        "rarity": RAR_EN[rareza] if rareza else None, # -> color; nombre de enum RARITY (o null)
+        "zipfFrequency": round(zipf, 2),              # señal cruda (depuración/balance)
+        "includedInPool": en_pool,                    # ¿entra en la colección de lanzamiento?
+        "isLocution": (" " in p or "-" in p),
+        # Régimen verbal (vacío si no es verbo). Valores en español a propósito.
         "regimen": regimen,
-        "regimen_fuente": "heuristica" if es_verbo else None,
-        "region": None,                      # regionalismo (marco especial); rellenar luego
-        "es_poetica": None,                  # marca poética RAE; rellenar luego
-        "acepcion_corta": None,              # anverso/reverso; IA offline por lotes
-        "acepcion_completa": None,           # reverso ampliado; fuente abierta
-        # 'shiny' y 'nivel_maestria' son estado de cada copia en propiedad
-        # del jugador (runtime), NO atributos del catálogo. No van aquí.
+        "regimenSource": "heuristica" if es_verbo else None,
+        "region": None,                               # regionalismo (marco especial); luego
+        "isPoetic": None,                             # marca poética RAE; luego
+        "shortDefinition": None,                      # reverso; IA offline por lotes
+        "fullDefinition": None,                       # reverso ampliado; fuente abierta
+        # 'isShiny' y 'masteryLevel' son estado por copia del jugador
+        # (CardInProperty), NO atributos del catálogo. No van aquí.
     }
 
 
@@ -196,7 +208,7 @@ def main():
     # ---- Filtrado y limpieza (no alteran el informe de reparto) ----
     salida_registros = registros
     if args.solo_pool:
-        salida_registros = [r for r in salida_registros if r["incluida_en_pool"]]
+        salida_registros = [r for r in salida_registros if r["includedInPool"]]
     if args.sin_nulls:
         salida_registros = [_quitar_vacios(r) for r in salida_registros]
 
@@ -218,15 +230,15 @@ def main():
 
     # ---- Informe ----
     from collections import Counter
-    rar = Counter(r["rareza"] for r in registros)
-    cat = Counter(r["categoria"] for r in registros)
-    en_pool = sum(1 for r in registros if r["incluida_en_pool"])
+    rar = Counter(r["rarity"] for r in registros)
+    cat = Counter(r["category"] for r in registros)
+    en_pool = sum(1 for r in registros if r["includedInPool"])
 
     print(f"Procesadas: {total_bruto:,} palabras")
     print(f"En pool jugable: {en_pool:,}  |  Reservadas: {total_bruto-en_pool:,}")
     print(f"Escritas al archivo: {len(salida_registros):,}")
     print("\nReparto por RAREZA (orden de colección):")
-    for r in ["COMUN", "POCO_COMUN", "RARA", "EPICA", "LEGENDARIA", None]:
+    for r in ["Common", "Uncommon", "Rare", "Epic", "Legendary", None]:
         etq = r if r else "(sin frecuencia · reservadas)"
         print(f"  {etq:32} {rar.get(r,0):7,}")
     print("\nReparto por CATEGORÍA (heurística, a validar):")
