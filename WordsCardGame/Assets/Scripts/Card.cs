@@ -1,7 +1,8 @@
-using UnityEngine;
 using System;
-using DG.Tweening;
+using UnityEngine;
 using TMPro;
+using DG.Tweening;
+using Random = UnityEngine.Random;
 
 public class Card : MonoBehaviour
 {
@@ -10,12 +11,14 @@ public class Card : MonoBehaviour
     [Header("Flip")]
     [SerializeField] private Transform flipRoot;
     [SerializeField] private float flipDuration = 0.45f;
-    [SerializeField] private bool flipOnClick = true;
+ 
+    [Header("Interaction")]
+    [SerializeField] private Collider2D clickCollider;  
  
     [Header("Faces")]
-    [SerializeField] private GameObject coverFace;    
-    [SerializeField] private GameObject frontFace;   
-    [SerializeField] private GameObject backFace;    
+    [SerializeField] private GameObject coverFace;   
+    [SerializeField] private GameObject frontFace;      
+    [SerializeField] private GameObject backFace;      
  
     [Header("Front")]
     [SerializeField] private SpriteRenderer backgroundRarityColor;
@@ -23,10 +26,13 @@ public class Card : MonoBehaviour
     [SerializeField] private SpriteRenderer iconCategory;
  
     [Header("Reverse")]
-    [SerializeField] private SpriteRenderer reverseBackground;   
+    [SerializeField] private SpriteRenderer reverseBackground;
     [SerializeField] private TMP_Text backWordText;
     [SerializeField] private TMP_Text grammarText;
     [SerializeField] private TMP_Text definitionText;
+ 
+    [Header("Cover")]
+    [SerializeField] private SpriteRenderer coverBackground;   
  
     [Header("Config (ScriptableObjects)")]
     [SerializeField] private RarityConfig rarityConfig;
@@ -37,11 +43,14 @@ public class Card : MonoBehaviour
     private Vector3 _baseScale = Vector3.one;
     private Face _face = Face.Cover;
     private bool _animating;
-    private bool _freeFlip;
  
     private Transform Root => flipRoot != null ? flipRoot : transform;
  
-    private void Awake() => _baseScale = Root.localScale;
+    private void Awake()
+    {
+        _baseScale = Root.localScale;
+        if (clickCollider == null) clickCollider = GetComponent<Collider2D>();
+    }
  
     private void OnDestroy()
     {
@@ -60,32 +69,42 @@ public class Card : MonoBehaviour
         if (grammarText) grammarText.text = w.GrammaticalDescription();
         if (definitionText)
             definitionText.text = string.IsNullOrEmpty(w.shortDefinition) ? "—" : w.shortDefinition;
+
+        if (coverBackground)
+            coverBackground.color = Random.ColorHSV(0f, 1f, 0.5f, 0.9f, 0.7f, 1f);
  
         _animating = false;
-        _freeFlip = false;
         Root.localScale = _baseScale;
         ShowFace(Face.Cover);
     }
- 
+
+    public void SetInteractable(bool on)
+    {
+        if (clickCollider) clickCollider.enabled = on;
+    }
+
     public void PlayReveal()
     {
         Root.localScale = Vector3.zero;
         Root.DOScale(_baseScale, 0.35f).SetEase(Ease.OutBack);
     }
  
-    public void RevealFront()
+    public void Tap()
     {
-        if (_animating || _face != Face.Cover) return;
-        FlipTo(Face.Front, () => Revealed?.Invoke(this));
+        if (_animating) return;
+        if (_face == Face.Cover)
+            FlipTo(Face.Front, () => Revealed?.Invoke(this));
+        else
+            FlipTo(_face == Face.Front ? Face.Reverse : Face.Front);
     }
-    public void EnableFreeFlip() => _freeFlip = true;
+ 
     private void FlipTo(Face target, Action onComplete = null)
     {
         _animating = true;
         float half = flipDuration * 0.5f;
         Sequence seq = DOTween.Sequence();
-        seq.Append(Root.DOScaleX(0f, half).SetEase(Ease.InQuad));   
-        seq.AppendCallback(() => ShowFace(target));                 
+        seq.Append(Root.DOScaleX(0f, half).SetEase(Ease.InQuad));
+        seq.AppendCallback(() => ShowFace(target));
         seq.Append(Root.DOScaleX(_baseScale.x, half).SetEase(Ease.OutQuad));
         seq.OnComplete(() => { _face = target; _animating = false; onComplete?.Invoke(); });
     }
@@ -95,15 +114,5 @@ public class Card : MonoBehaviour
         if (coverFace) coverFace.SetActive(f == Face.Cover);
         if (frontFace) frontFace.SetActive(f == Face.Front);
         if (backFace)  backFace.SetActive(f == Face.Reverse);
-    }
- 
-    private void OnMouseDown()
-    {
-        if (!flipOnClick || _animating) return;
- 
-        if (_face == Face.Cover)
-            RevealFront();                                
-        else if (_freeFlip)
-            FlipTo(_face == Face.Front ? Face.Reverse : Face.Front);  
     }
 }

@@ -139,8 +139,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Card
   flipRoot: {fileID: 4752618730064632152}
   flipDuration: 0.45
-  flipOnClick: 1
-  coverFace: {fileID: 0}
+  clickCollider: {fileID: -7935713253038060701}
+  coverFace: {fileID: 577040393402481336}
   frontFace: {fileID: 8880657478548720828}
   backFace: {fileID: 2772644195489956385}
   backgroundRarityColor: {fileID: 2528248387183542082}
@@ -150,6 +150,7 @@ MonoBehaviour:
   backWordText: {fileID: 1746198630326242703}
   grammarText: {fileID: 397499815592963549}
   definitionText: {fileID: 4133792646611623496}
+  coverBackground: {fileID: 6763469372005145320}
   rarityConfig: {fileID: 11400000, guid: 9ea1e57bd306fef4e944e5246c977734, type: 2}
   categoryConfig: {fileID: 11400000, guid: fdfa77f43961ca849b1629cc7ff8a714, type: 2}
 --- !u!61 &-7935713253038060701
@@ -858,7 +859,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 7482667652216324306, guid: d0e0a90116d9d414abbeb3ed86566edb, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -866,7 +867,7 @@ SpriteRenderer:
   m_Size: {x: 1, y: 1}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 0
+  m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
 --- !u!1 &7569596853037640707
 GameObject:
